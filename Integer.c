@@ -54,34 +54,26 @@ Integer integer_add_int(Integer *a, uint64_t b)
 	Integer result;
 	integer_initialize(&result);
 
-	uint32_t b_bottom = b;
-	uint64_t result64 = (uint64_t) a->values[0] + (uint64_t) b_bottom;
-	result.values[0] = result64;
-	uint64_t remaining = result64 >> BITS_IN_VALUE;
-	size_t i = 1;
-	while (remaining > 0)
-	{
-		integer_resize_if_necessary(&result, i + 1);
-		result64 = (uint64_t) a->values[i] + remaining;
-		result.values[i] = result64;
-		remaining = result64 >> BITS_IN_VALUE;
-		i++;
-	}
-
-	result64 = (uint64_t) a->values[1] + (b >> BITS_IN_VALUE);
-	result.values[1] = result64;
-	remaining = result64 >> BITS_IN_VALUE;
-	i = 2;
-	while (remaining > 0)
-	{
-		integer_resize_if_necessary(&result, i + 1);
-		result64 = (uint64_t) a->values[i] + remaining;
-		result.values[i] = result64;
-		remaining = result64 >> BITS_IN_VALUE;
-		i++;
-	}
+	integer_add_cycle(&result, 0, a, b);
+	integer_add_cycle(&result, 1, a, b >> BITS_IN_VALUE);
 
 	return result;
+}
+
+void integer_add_cycle(Integer *result, size_t current_lowest, Integer *a, uint32_t value)
+{
+	uint64_t result64 = (uint64_t) a->values[current_lowest] + value;
+	result->values[current_lowest] = result64;
+	uint64_t remaining = result64 >> BITS_IN_VALUE;
+	size_t i = current_lowest + 1;
+	while (remaining > 0)
+	{
+		integer_resize_if_necessary(result, i + 1);
+		result64 = (uint64_t) a->values[i] + remaining;
+		result->values[i] = result64;
+		remaining = result64 >> BITS_IN_VALUE;
+		i++;
+	}
 }
 
 char *integer_to_string(Integer *a)
