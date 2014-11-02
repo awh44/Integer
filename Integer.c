@@ -5,6 +5,8 @@
 
 #include "Integer.h"
 
+void integer_add_cycle(Integer *result, uint32_t value, size_t index);
+
 uint8_t integer_initialize(Integer *a)
 {
 	a->values = calloc(1, sizeof *a->values);
@@ -53,24 +55,44 @@ Integer integer_add_int(Integer *a, uint64_t b)
 {
 	Integer result;
 	integer_initialize(&result);
+	integer_assign_from_integer(&result, a);
 
-	integer_add_cycle(&result, 0, a, b);
-	integer_add_cycle(&result, 1, a, b >> BITS_IN_VALUE);
+	integer_add_cycle(&result, b, 0);
+	integer_add_cycle(&result, b >> BITS_IN_VALUE, 1);
 
 	return result;
 }
 
-void integer_add_cycle(Integer *result, size_t current_lowest, Integer *a, uint32_t value)
+Integer integer_add_integer(Integer *a, Integer *b)
 {
-	uint64_t result64 = (uint64_t) a->values[current_lowest] + value;
-	result->values[current_lowest] = result64;
+	Integer result;
+	integer_initialize(&result);
+	integer_assign_from_integer(&result, a);
+
+	size_t i;
+	for (i = 0; i < b->assigned_values; i++)
+	{
+		integer_add_cycle(&result, b->values[i], i);
+	}
+
+	return result;
+}
+
+void integer_add_cycle(Integer *result, uint32_t value, size_t index)
+{
+	uint64_t result64 = (uint64_t) value + result->values[index];
+	result->values[index] = result64;
+
 	uint64_t remaining = result64 >> BITS_IN_VALUE;
-	size_t i = current_lowest + 1;
+	size_t i = index + 1;
 	while (remaining > 0)
 	{
-		integer_resize_if_necessary(result, i + 1);
-		result64 = (uint64_t) a->values[i] + remaining;
+		integer_resize_if_necessary(result, i);
+		result64 = remaining + result->values[i];
+
 		result->values[i] = result64;
+		result->assigned_values = i + 1;
+
 		remaining = result64 >> BITS_IN_VALUE;
 		i++;
 	}
@@ -83,6 +105,7 @@ char *integer_to_string(Integer *a)
 
 uint8_t integer_resize_if_necessary(Integer *a, size_t needed_size)
 {
+	printf("in resize\n");
     if (a->array_size < needed_size)
     {
 		a->array_size *= 2;
