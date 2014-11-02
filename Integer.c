@@ -105,7 +105,6 @@ char *integer_to_string(Integer *a)
 
 uint8_t integer_resize_if_necessary(Integer *a, size_t needed_size)
 {
-	printf("in resize\n");
     if (a->array_size < needed_size)
     {
 		a->array_size *= 2;
