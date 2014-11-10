@@ -96,7 +96,13 @@ Complex *FFT(int n, Complex *x)
 Complex *inverse_FFT(int n, Complex *x)
 {
 	Complex *conjugates = compute_conjugates(n, x);
-	return compute_conjugates_over_n(n, FFT_worker(n, conjugates, 0, 1));
+	Complex *fft_result = FFT_worker(n, conjugates, 0, 1);
+	Complex *ret_val = compute_conjugates_over_n(n, fft_result);
+	
+	free(conjugates);
+	free(fft_result);
+	
+	return ret_val;
 }
 
 void print_complex_number(Complex x)
