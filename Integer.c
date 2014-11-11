@@ -98,6 +98,21 @@ void integer_add_cycle(Integer *result, uint32_t value, size_t index)
 	}
 }
 
+Integer integer_subtract_int(Integer *a, uint64_t)
+{
+	Integer result;
+	integer_initialize(&result);
+	return result;	
+}
+
+Integer integer_multiply_int(Integer *a, uint64_t, b)
+{
+	Integer result;
+	integer_initialize(&result);
+	
+	return result;
+}
+
 char *integer_to_string(Integer *a)
 {
 	return NULL;
@@ -105,8 +120,8 @@ char *integer_to_string(Integer *a)
 
 uint8_t integer_resize_if_necessary(Integer *a, size_t needed_size)
 {
-    if (a->array_size < needed_size)
-    {
+	if (a->array_size < needed_size)
+	{
 		a->array_size *= 2;
 		uint32_t *tmp = realloc(a->values, a->array_size * sizeof *a->values);
 		if (tmp == NULL)
@@ -121,6 +136,5 @@ uint8_t integer_resize_if_necessary(Integer *a, size_t needed_size)
 			a->values[i] = 0;
 		}
 	}
-
 	return 1;
 }
