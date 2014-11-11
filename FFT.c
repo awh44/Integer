@@ -2,6 +2,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 const long double TWO_PI = 2 * M_PI;
 
@@ -56,6 +57,23 @@ Complex *compute_conjugates_over_n(int n, Complex *x)
 		result[i] = complex_conjugate_over_n(x[i], n);
 	}
 
+	return result;
+}
+
+Complex compute_single_complex_mod_n(Complex a, int n)
+{
+	Complex result = { ((uint64_t) a.real) % n, ((uint64_t) a.imag) % n };
+	return result;
+}
+
+Complex *compute_complex_mod_n(int n, Complex *x)
+{
+	Complex *result = malloc(n * sizeof *result);
+	int i;
+	for (i = 0; i < n; i++)
+	{
+		result[i] = compute_single_complex_mod_n(x[i], n);
+	}
 	return result;
 }
 
@@ -119,8 +137,61 @@ void print_complex_numbers(int n, Complex *x)
 	}
 }
 
+int8_t get_bit_i(int32_t a, int bit)
+{
+	return (a >> bit) & 1;
+}
+
+int64_t multiply(int32_t a, int32_t b)
+{
+	Complex *a_bits = calloc(32, sizeof *a_bits);
+	Complex *b_bits = calloc(32, sizeof *b_bits);
+	
+	int i;
+	for (i = 0; i < 32; i++)
+	{
+		a_bits[i].real = get_bit_i(a, i);
+		b_bits[i].real = get_bit_i(b, i);
+	}
+
+	Complex *a_fft = FFT(32, a_bits);
+	Complex *b_fft = FFT(32, b_bits);
+	Complex *mult_results = calloc(32, sizeof *mult_results);
+
+	for (i = 0; i < 32; i++)
+	{
+		mult_results[i] = complex_multiply(a_fft[i], b_fft[i]);
+	}
+
+	Complex *result_fft = inverse_FFT(32, mult_results);
+
+	int64_t result = 0;
+	for (i = 0; i < 32; i++)
+	{
+		result |= ((int64_t) result_fft[i].real) << i; 
+	}
+
+	free(a_bits);
+	free(b_bits);
+	free(mult_results);
+	free(result_fft);
+	
+	return result;
+}
+
 int main(int argc, char *argv[])
 {
+	if (argc < 3)
+	{
+		printf("Please enter two numbers to multiply.\n");
+		return 1;
+	}
+
+	int64_t value = multiply(atoi(argv[1]), atoi(argv[2]));
+	printf("%ld\n", value);
+
+
+/*
 	if (argc < 2)
 	{
 		printf("Please enter at least one number of which to compute the FFT.\n");
@@ -146,5 +217,6 @@ int main(int argc, char *argv[])
 
 	free(resultFFT);
 	free(resultInverseFFT);
+*/
 	return 0;
 }
