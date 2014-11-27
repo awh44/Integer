@@ -1,13 +1,17 @@
-.PHONY: test FFT clean
+.PHONY: view-results FFT clean
 
-test: main.out
-	@./main.out
+view-results: results.test
+	less results.test
 
-FFT: FFT.out
-	@./FFT.out $(FIRST) $(SECOND)
+results.test: main.out
+	@echo running
+	@./main.out > results.test
 
 main.out: main.c Integer.c Integer.h
 	@gcc -omain.out main.c Integer.c
+
+FFT: FFT.out
+	@./FFT.out $(FIRST) $(SECOND)
 
 FFT.out: FFT.c
 	@gcc -oFFT.out FFT.c -lm
