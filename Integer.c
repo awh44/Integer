@@ -91,22 +91,22 @@ Integer integer_add_integer(Integer *result, Integer *a, Integer *b)
 
 uint8_t integer_add_cycle(Integer *result, uint64_t value, uint8_t carry, size_t index)
 {
-	uint64_t orig_value = result->values[index];
-	uint64_t result64 = value + orig_value + carry;
 	integer_resize_if_necessary(result, index + 1);
-	result->values[index] = result64;
+	result->values[index] = value + result->values[index];
 
-	if (result64 < orig_value)
+	uint8_t next_carry = 0;
+	if (result->values[index] < value)
 	{
-		return 1;
+		next_carry = 1;
 	}
-	else if ((result64 == orig_value) && (value != 0))
+	
+	result->values[index] += carry;
+	if (result->values[index] < carry)
 	{
-		result->values[index] = 0;
-		return 1;
+		next_carry = 1;
 	}
 
-	return 0;	
+	return next_carry;
 }
 
 Integer integer_subtract_int(Integer *result, Integer *a, uint64_t b)

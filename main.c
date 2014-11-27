@@ -106,7 +106,6 @@ int main()
 	printf("a.assigned_values = %zu\n", a.assigned_values);
 	printf("a.array_size = %zu\n", a.array_size);
 
-
 	integer_uninitialize(&a);
 	integer_uninitialize(&b);
 	return 0;
