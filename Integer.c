@@ -5,7 +5,9 @@
 
 #include "Integer.h"
 
-void integer_add_cycle(Integer *result, uint32_t value, size_t index);
+uint8_t integer_add_cycle(Integer *result, uint64_t value, uint8_t carry, size_t index);
+uint8_t integer_resize_if_necessary(Integer *a, size_t needed_size);
+void integer_propagate_final_carry(Integer *result, uint8_t carry, size_t carry_index);
 
 uint8_t integer_initialize(Integer *a)
 {
@@ -24,93 +26,97 @@ void integer_uninitialize(Integer *a)
 	free(a->values);
 }
 
-Integer integer_assign_from_int(Integer *a, uint64_t b)
+Integer integer_assign_from_int(Integer *dest, uint64_t source)
 {
-	memset(a->values, 0, a->array_size * sizeof *a->values);
-	uint32_t b_top = b >> BITS_IN_VALUE;
-	if (b_top > 0)
+	memset(dest->values, 0, dest->array_size * sizeof *dest->values);
+	dest->values[0] = source;
+	dest->assigned_values = 1;
+	return *dest;
+}
+
+Integer integer_assign_from_integer(Integer *dest, Integer *source)
+{
+	integer_resize_if_necessary(dest, source->assigned_values);
+	memcpy(dest->values, source->values, source->assigned_values * sizeof *source->values);
+	dest->assigned_values = source->assigned_values;
+	return *dest;
+}
+
+void integer_propagate_final_carry(Integer *result, uint8_t carry, size_t carry_index)
+{
+	while (carry > 0)
 	{
-		integer_resize_if_necessary(a, 2);
-		a->values[0] = b;
-		a->values[1] = b_top;
-		a->assigned_values = 2;
+		integer_resize_if_necessary(result, carry_index + 1);
+		result->values[carry_index] += carry;
+		carry = result->values[carry_index] < carry; //if overflow happened again, set carry to 1 
+		carry_index++;
 	}
-	else
+
+	if (carry_index + 1 > result->assigned_values)
 	{
-		a->values[0] = b;
-		a->assigned_values = 1;
+		result->assigned_values = carry_index;
 	}
-	return *a;
 }
 
-Integer integer_assign_from_integer(Integer *a, Integer *b)
+Integer integer_add_int(Integer *result, Integer *a, uint64_t b)
 {
-	integer_resize_if_necessary(a, b->assigned_values);
-	memcpy(a->values, b->values, b->assigned_values * sizeof *b->values);
-	a->assigned_values = b->assigned_values;
-	return *a;
+	Integer r;
+	integer_initialize(&r);
+	integer_assign_from_integer(&r, a);
+
+	uint8_t carry = integer_add_cycle(&r, b, 0, 0);
+	integer_propagate_final_carry(&r, carry, 1);
+	
+	integer_assign_from_integer(result, &r);
+	return *result;
 }
 
-Integer integer_add_int(Integer *a, uint64_t b)
+Integer integer_add_integer(Integer *result, Integer *a, Integer *b)
 {
-	Integer result;
-	integer_initialize(&result);
-	integer_assign_from_integer(&result, a);
+	Integer r;
+	integer_initialize(&r);
+	integer_assign_from_integer(&r, a);
 
-	integer_add_cycle(&result, b, 0);
-	integer_add_cycle(&result, b >> BITS_IN_VALUE, 1);
-
-	return result;
-}
-
-Integer integer_add_integer(Integer *a, Integer *b)
-{
-	Integer result;
-	integer_initialize(&result);
-	integer_assign_from_integer(&result, a);
-
+	uint8_t carry = 0;
 	size_t i;
 	for (i = 0; i < b->assigned_values; i++)
 	{
-		integer_add_cycle(&result, b->values[i], i);
+		carry = integer_add_cycle(&r, b->values[i], carry, i);
 	}
+	integer_propagate_final_carry(&r, carry, i);	
 
-	return result;
+	integer_assign_from_integer(result, &r);
+	return *result;
 }
 
-void integer_add_cycle(Integer *result, uint32_t value, size_t index)
+uint8_t integer_add_cycle(Integer *result, uint64_t value, uint8_t carry, size_t index)
 {
-	uint64_t result64 = (uint64_t) value + result->values[index];
+	uint64_t orig_value = result->values[index];
+	uint64_t result64 = value + orig_value + carry;
+	integer_resize_if_necessary(result, index + 1);
 	result->values[index] = result64;
 
-	uint64_t remaining = result64 >> BITS_IN_VALUE;
-	size_t i = index + 1;
-	while (remaining > 0)
+	if (result64 < orig_value)
 	{
-		integer_resize_if_necessary(result, i);
-		result64 = remaining + result->values[i];
-
-		result->values[i] = result64;
-		result->assigned_values = i + 1;
-
-		remaining = result64 >> BITS_IN_VALUE;
-		i++;
+		return 1;
 	}
+	else if ((result64 == orig_value) && (value != 0))
+	{
+		result->values[index] = 0;
+		return 1;
+	}
+
+	return 0;	
 }
 
-Integer integer_subtract_int(Integer *a, uint64_t)
+Integer integer_subtract_int(Integer *result, Integer *a, uint64_t b)
 {
-	Integer result;
-	integer_initialize(&result);
-	return result;	
+	return *result;	
 }
 
-Integer integer_multiply_int(Integer *a, uint64_t, b)
+Integer integer_multiply_int(Integer *result, Integer *a, uint64_t b)
 {
-	Integer result;
-	integer_initialize(&result);
-	
-	return result;
+	return *result;
 }
 
 char *integer_to_string(Integer *a)
@@ -123,7 +129,7 @@ uint8_t integer_resize_if_necessary(Integer *a, size_t needed_size)
 	if (a->array_size < needed_size)
 	{
 		a->array_size *= 2;
-		uint32_t *tmp = realloc(a->values, a->array_size * sizeof *a->values);
+		uint64_t *tmp = realloc(a->values, a->array_size * sizeof *a->values);
 		if (tmp == NULL)
 		{
 			a->array_size /= 2;

@@ -8,7 +8,7 @@
 
 typedef struct
 {
-	uint32_t *values;
+	uint64_t *values;
 	size_t assigned_values;
 	size_t array_size;
 } Integer;
@@ -17,11 +17,10 @@ uint8_t integer_initialize(Integer *a);
 void integer_uninitialize(Integer *a);
 Integer integer_assign_from_int(Integer *dest, uint64_t source);
 Integer integer_assign_from_integer(Integer *dest, Integer *source);
-Integer integer_add_int(Integer *a, uint64_t b);
-Integer integer_add_integer(Integer *a, Integer *b);
-Integer integer_subtract_int(Integer *a, uint64_t);
-Integer integer_multiply_int(Integer *a, uint64_t);
+Integer integer_add_int(Integer *result, Integer *a, uint64_t b);
+Integer integer_add_integer(Integer *result, Integer *a, Integer *b);
+Integer integer_subtract_int(Integer *result, Integer *a, uint64_t b);
+Integer integer_multiply_int(Integer *result, Integer *a, uint64_t b);
 char *integer_to_string(Integer *a);
-uint8_t integer_resize_if_necessary(Integer *a, size_t needed_size);
 
 #endif
