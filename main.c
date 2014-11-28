@@ -87,6 +87,21 @@ int main()
 	integer_subtract_integer(&a, &a, &b);
 	printf("After subtracting b from a:\n");
 	print_status("a", &a);
+
+	integer_assign_from_integer(&a, &b);
+	a.values[0] = 0;
+	a.values[1] = 0;
+	printf("Assigned a 1 0 0 (base 64):\n");
+	print_status("a", &a);
+
+	integer_assign_from_integer(&b, &a);
+	integer_subtract_int(&b, &b, 1);
+	printf("Assigned a to b and subtracted 1.\n");
+	print_status("b", &b);
+
+	integer_subtract_integer(&a, &a, &b);
+	printf("Subtracted b from a:\n");
+	print_status("a", &a);
 	
 	integer_uninitialize(&a);
 	integer_uninitialize(&b);
