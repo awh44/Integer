@@ -9,6 +9,7 @@
 typedef struct
 {
 	uint64_t *values;
+	uint8_t sign;
 	size_t assigned_values;
 	size_t array_size;
 } Integer;
@@ -20,7 +21,9 @@ Integer integer_assign_from_integer(Integer *dest, Integer *source);
 Integer integer_add_int(Integer *result, Integer *a, uint64_t b);
 Integer integer_add_integer(Integer *result, Integer *a, Integer *b);
 Integer integer_subtract_int(Integer *result, Integer *a, uint64_t b);
+Integer integer_subtract_integer(Integer *result, Integer *a, Integer *b);
 Integer integer_multiply_int(Integer *result, Integer *a, uint64_t b);
 char *integer_to_string(Integer *a);
+
 
 #endif
