@@ -4,13 +4,13 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define BITS_IN_VALUE 32
+#define BITS_IN_VALUE 64
 
 typedef struct
 {
 	uint64_t *values;
 	uint8_t sign;
-	size_t assigned_values;
+	size_t assigned;
 	size_t array_size;
 } Integer;
 

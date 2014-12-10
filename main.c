@@ -5,11 +5,11 @@
 void print_status(char *var, Integer *a)
 {
 	long long int i;
-	for (i = a->assigned_values - 1; i >= 0; i--)
+	for (i = a->assigned - 1; i >= 0; i--)
 	{
 		printf("%s.values[%llu] = %lu\n", var, i, a->values[i]);
 	}
-	printf("%s.assigned_values = %zu\n%s.array_size = %zu\n\n", var, a->assigned_values, var, a->array_size);
+	printf("%s.assigned = %zu\n%s.array_size = %zu\n\n", var, a->assigned, var, a->array_size);
 }
 
 int main()
@@ -102,7 +102,18 @@ int main()
 	integer_subtract_integer(&a, &a, &b);
 	printf("Subtracted b from a:\n");
 	print_status("a", &a);
-	
+
+	integer_assign_from_int(&a, 2);
+	integer_multiply_int(&a, &a, 2);
+	printf("Multiplying a = 2 by 2:\n");
+	print_status("a", &a);
+
+	integer_assign_from_int(&a, 0xffffffffffffffff);
+	integer_multiply_int(&a, &a, 2);
+	printf("Multiplying a = 2 ^ 64 - 1 * 2:\n");
+	print_status("a", &a);
+
+			
 	integer_uninitialize(&a);
 	integer_uninitialize(&b);
 	return 0;

@@ -23,7 +23,7 @@ uint8_t integer_initialize(Integer *a)
 	{
 		return 0;
 	}
-	a->assigned_values = 0;
+	a->assigned = 0;
 	a->array_size = 1;
 	return 1;
 }
@@ -37,15 +37,15 @@ Integer integer_assign_from_int(Integer *dest, uint64_t source)
 {
 	memset(dest->values, 0, dest->array_size * sizeof *dest->values);
 	dest->values[0] = source;
-	dest->assigned_values = 1;
+	dest->assigned = 1;
 	return *dest;
 }
 
 Integer integer_assign_from_integer(Integer *dest, Integer *source)
 {
-	integer_resize_if_necessary(dest, source->assigned_values);
-	memcpy(dest->values, source->values, source->assigned_values * sizeof *source->values);
-	dest->assigned_values = source->assigned_values;
+	integer_resize_if_necessary(dest, source->assigned);
+	memcpy(dest->values, source->values, source->assigned * sizeof *source->values);
+	dest->assigned = source->assigned;
 	return *dest;
 }
 
@@ -70,7 +70,7 @@ Integer integer_add_integer(Integer *result, Integer *a, Integer *b)
 
 	uint8_t carry = 0;
 	size_t i;
-	for (i = 0; i < b->assigned_values; i++)
+	for (i = 0; i < b->assigned; i++)
 	{
 		carry = integer_add_cycle(&r, b->values[i], carry, i);
 	}
@@ -110,9 +110,9 @@ void integer_propagate_final_carry(Integer *result, uint8_t carry, size_t carry_
 		carry_index++;
 	}
 
-	if (carry_index > result->assigned_values)
+	if (carry_index > result->assigned)
 	{
-		result->assigned_values = carry_index;
+		result->assigned = carry_index;
 	}
 }
 
@@ -139,7 +139,7 @@ Integer integer_subtract_integer(Integer *result, Integer *a, Integer *b)
 	uint8_t borrow = 0;
 	size_t consecutive_zeros = 0;
 	size_t i;
-	for (i = 0; i < b->assigned_values; i++)
+	for (i = 0; i < b->assigned; i++)
 	{
 		borrow = integer_sub_cycle(&r, b->values[i], borrow, i, &consecutive_zeros);
 	}
@@ -182,24 +182,66 @@ void integer_propagate_final_borrow(Integer *result, uint8_t borrow, size_t borr
 		borrow_index++;
 	}
 
-	result->assigned_values -= cons_zeros;
+	result->assigned -= cons_zeros;
 }
 
-void integer_mult_cycle(Integer *result, uint64_t value, size_t index)
-{
 /*
-	     1111 = a
-	   x 0110 = b  Note that the 'overflow' is a - r. 
-	---------
-	0101 1010 = r
-*/
+void integer_mult_cycle(Integer *result, Integer *a, uint64_t value, size_t index)
+{
+	Integer intermediates, tmp;
+	integer_initialize(&intermediates);
+
+	size_t i;
+	for (i = 0; i < a->assigned; i++)
+	{
+		__uint128_t result128 = a->values[i] * value;
+		integer_add_cycle(
+	}	
 }
+*/
 
 Integer integer_multiply_int(Integer *result, Integer *a, uint64_t b)
 {
 	Integer r;
 	integer_initialize(&r);
-	integer_assign_from_integer(&r, a);
+
+	if ((a->assigned == 1 && a->values[0] == 0) || (b == 0))
+	{
+		integer_assign_from_integer(result, &r);
+		return *result;
+	}
+
+	Integer *intermediates = malloc(a->assigned * sizeof *intermediates);
+	size_t i;
+	for (i = 0; i < a->assigned; i++)
+	{
+		__uint128_t result128 = (__uint128_t) a->values[i] * b;
+		uint64_t lower = result128;
+		printf("lower = %lu\n", lower);
+		integer_initialize(&intermediates[i]);
+		uint64_t upper64;
+		if ((upper64 = result128 >> BITS_IN_VALUE) > 0)
+		{
+			integer_resize_if_necessary(&intermediates[i], i + 1);
+			intermediates[i].values[i] = result128;
+			intermediates[i].values[i + 1] = upper64;
+			intermediates[i].assigned = i + 2;
+		}
+		else
+		{
+			integer_resize_if_necessary(&intermediates[i], i);
+			intermediates[i].values[i] = result128;
+			intermediates[i].assigned = i + 1;
+		}
+	}
+
+	size_t original_assigned = a->assigned;
+	for (i = 0; i < original_assigned; i++)
+	{
+		integer_add_integer(&r, &r, &intermediates[i]);
+	}
+
+	integer_assign_from_integer(result, &r);
 
 	return *result;
 }
