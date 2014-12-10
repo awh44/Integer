@@ -205,7 +205,8 @@ Integer integer_multiply_int(Integer *result, Integer *a, uint64_t b)
 	Integer r;
 	integer_initialize(&r);
 
-	if ((a->assigned == 1 && a->values[0] == 0) || (b == 0))
+	//handle multiplication by zero immediately
+	if ((a->assigned == 0) || (b == 0))
 	{
 		integer_assign_from_integer(result, &r);
 		return *result;
@@ -215,12 +216,11 @@ Integer integer_multiply_int(Integer *result, Integer *a, uint64_t b)
 	size_t i;
 	for (i = 0; i < a->assigned; i++)
 	{
-		__uint128_t result128 = (__uint128_t) a->values[i] * b;
-		uint64_t lower = result128;
-		printf("lower = %lu\n", lower);
 		integer_initialize(&intermediates[i]);
-		uint64_t upper64;
-		if ((upper64 = result128 >> BITS_IN_VALUE) > 0)
+		
+		__uint128_t result128 = (__uint128_t) a->values[i] * b;	
+		uint64_t upper64 = result128 >> BITS_IN_VALUE;
+		if (upper64 > 0)
 		{
 			integer_resize_if_necessary(&intermediates[i], i + 1);
 			intermediates[i].values[i] = result128;
@@ -235,8 +235,7 @@ Integer integer_multiply_int(Integer *result, Integer *a, uint64_t b)
 		}
 	}
 
-	size_t original_assigned = a->assigned;
-	for (i = 0; i < original_assigned; i++)
+	for (i = 0; i < a->assigned; i++)
 	{
 		integer_add_integer(&r, &r, &intermediates[i]);
 	}

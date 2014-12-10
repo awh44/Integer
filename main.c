@@ -110,8 +110,17 @@ int main()
 
 	integer_assign_from_int(&a, 0xffffffffffffffff);
 	integer_multiply_int(&a, &a, 2);
-	printf("Multiplying a = 2 ^ 64 - 1 * 2:\n");
+	printf("Multiplying a = 2 ^ 64 - 1 by 2:\n");
 	print_status("a", &a);
+
+	size_t i;
+	for (i = 0; i < 2; i++)
+	{
+		integer_multiply_int(&a, &a, 0xffffffff);
+		printf("Multiplying a by 2^32 - 1:\n");
+		print_status("a", &a);
+	}
+
 
 			
 	integer_uninitialize(&a);
