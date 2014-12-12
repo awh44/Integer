@@ -7,6 +7,16 @@
 
 #define INTEGER_MAX_WORD_VALUE 0xffffffffffffffff
 
+void print_parts(char *name, Integer *a)
+{
+	size_t i;
+	for (i = a->assigned - 1; i != 0xffffffffffffffff; i--)
+	{
+		printf("%s.values[%zu] = %lu\n", name, i, a->values[i]);
+	}
+}
+
+void integer_set_assigned(Integer *a);
 
 uint8_t integer_resize_if_necessary(Integer *a, size_t needed_size);
 
@@ -15,6 +25,21 @@ void integer_propagate_final_carry(Integer *result, uint8_t carry, size_t carry_
 
 uint8_t integer_sub_cycle(Integer *result, uint64_t value, uint8_t borrow, size_t index, size_t *cons_zeros);
 void integer_propagate_final_borrow(Integer *result, uint8_t borrow, size_t borrow_index, size_t cons_zeros);
+
+void integer_set_assigned(Integer *a)
+{
+	if (a->assigned == 0)
+	{
+		return;
+	}
+
+	size_t i = a->assigned - 1;
+	while (a->values[i] == 0)
+	{
+		i--;
+	}
+	a->assigned = i + 1;
+}
 
 uint8_t integer_initialize(Integer *a)
 {
@@ -185,21 +210,6 @@ void integer_propagate_final_borrow(Integer *result, uint8_t borrow, size_t borr
 	result->assigned -= cons_zeros;
 }
 
-/*
-void integer_mult_cycle(Integer *result, Integer *a, uint64_t value, size_t index)
-{
-	Integer intermediates, tmp;
-	integer_initialize(&intermediates);
-
-	size_t i;
-	for (i = 0; i < a->assigned; i++)
-	{
-		__uint128_t result128 = a->values[i] * value;
-		integer_add_cycle(
-	}	
-}
-*/
-
 Integer integer_multiply_int(Integer *result, Integer *a, uint64_t b)
 {
 	Integer r;
@@ -214,6 +224,7 @@ Integer integer_multiply_int(Integer *result, Integer *a, uint64_t b)
 
 	Integer *intermediates = malloc(a->assigned * sizeof *intermediates);
 	size_t i;
+	//linear operation
 	for (i = 0; i < a->assigned; i++)
 	{
 		integer_initialize(&intermediates[i]);
@@ -235,13 +246,66 @@ Integer integer_multiply_int(Integer *result, Integer *a, uint64_t b)
 		}
 	}
 
+	//n * n operation
 	for (i = 0; i < a->assigned; i++)
 	{
+		//linear operation
 		integer_add_integer(&r, &r, &intermediates[i]);
 	}
+	free(intermediates);
 
 	integer_assign_from_integer(result, &r);
+	return *result;
+}
 
+Integer integer_multiply_integer(Integer *result, Integer *a, Integer *b)
+{
+	Integer r;
+	integer_initialize(&r);
+
+	Integer resultInteger;
+	resultInteger.values = calloc(2, sizeof *resultInteger.values);
+	resultInteger.array_size = 2;
+	resultInteger.assigned = 0;
+
+	Integer run_sum;
+	integer_initialize(&run_sum);
+
+	size_t n = a->assigned;
+	size_t i;
+	for (i = 0; i < 2 * n; i++)
+	{
+		size_t stop = i < n - 1 ? i : n - 1;
+		int64_t tmp = (int64_t) i + 1 - n;
+		size_t j = tmp > 0 ? tmp : 0;
+		for (; j <= stop; j++)
+		{
+			size_t k = i - j;
+			__uint128_t result128 = (__uint128_t) a->values[j] * b->values[k];
+			uint64_t upper64 = result128 >> BITS_IN_VALUE;
+			resultInteger.values[1] = upper64;
+			resultInteger.values[0] = result128;
+			resultInteger.assigned = (resultInteger.values[0] > 0) + (resultInteger.values[1] > 0);
+
+			integer_add_integer(&run_sum, &run_sum, &resultInteger);
+		}
+
+		integer_resize_if_necessary(&r, i + 1);
+		r.values[i] = run_sum.values[0];
+		if (r.values[i] > 0)
+		{
+			r.assigned = i + 1;
+		}
+		
+		if (run_sum.assigned > 0)
+		{
+			run_sum.assigned--;
+			memmove(run_sum.values, run_sum.values + 1, run_sum.assigned * sizeof *run_sum.values);
+		}
+		run_sum.values[run_sum.assigned] = 0;
+		
+	}
+	integer_assign_from_integer(result, &r);
 	return *result;
 }
 

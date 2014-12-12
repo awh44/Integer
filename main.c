@@ -1,11 +1,12 @@
 #include <stdio.h>
+#include <string.h>
 
 #include "Integer.h"
 
 void print_status(char *var, Integer *a)
 {
 	long long int i;
-	for (i = a->assigned - 1; i >= 0; i--)
+	for (i = a->array_size - 1; i >= 0; i--)
 	{
 		printf("%s.values[%llu] = %lu\n", var, i, a->values[i]);
 	}
@@ -97,6 +98,7 @@ int main()
 	integer_assign_from_integer(&b, &a);
 	integer_subtract_int(&b, &b, 1);
 	printf("Assigned a to b and subtracted 1.\n");
+	printf("b.values[2] = %lu\n", b.values[2]);
 	print_status("b", &b);
 
 	integer_subtract_integer(&a, &a, &b);
@@ -121,8 +123,29 @@ int main()
 		print_status("a", &a);
 	}
 
+	/*
+	a.assigned--;
+	memmove(a.values, a.values + 1, a.assigned * sizeof *a.values);
+	a.values[a.assigned] = 0;
+	printf("Shifting a left 64 bits:\n");
+	print_status("a", &a);
+	*/
 
-			
+	integer_assign_from_int(&a, 0xffffffffffffffff);
+	integer_assign_from_int(&b, 2);
+
+	print_status("a", &a);
+	print_status("b", &b);
+
+	integer_multiply_integer(&a, &a, &b);
+	printf("Multiplied a by b:\n");
+	print_status("a", &a);
+
+	integer_assign_from_int(&b, 0xffffffffffffffff);
+	integer_multiply_integer(&a, &a, &b);
+	printf("Multiplying a by 0xffffffffffffffff in b:\n");
+	print_status("a", &a);
+	
 	integer_uninitialize(&a);
 	integer_uninitialize(&b);
 	return 0;

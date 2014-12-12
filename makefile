@@ -1,7 +1,7 @@
 PAGER=less
 CC=gcc
 
-.PHONY: view-results FFT clean
+.PHONY: view-results FFT clean debug
 
 view-results: results.test
 	@$(PAGER) results.test
@@ -10,7 +10,10 @@ results.test: main.out
 	@./main.out > results.test
 
 main.out: main.c Integer.c Integer.h
-	@$(CC) -omain.out main.c Integer.c
+	$(CC) -g -omain.out main.c Integer.c
+
+debug: main.out
+	@gdb ./main.out
 
 FFT: FFT.out
 	@./FFT.out $(FIRST) $(SECOND)

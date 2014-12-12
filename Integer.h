@@ -23,7 +23,8 @@ Integer integer_add_integer(Integer *result, Integer *a, Integer *b);
 Integer integer_subtract_int(Integer *result, Integer *a, uint64_t b);
 Integer integer_subtract_integer(Integer *result, Integer *a, Integer *b);
 Integer integer_multiply_int(Integer *result, Integer *a, uint64_t b);
+Integer integer_multiply_integer(Integer *result, Integer *a, Integer *b);
 char *integer_to_string(Integer *a);
 
-
+Integer karatsuba(Integer *result, Integer *a, Integer *b);
 #endif
