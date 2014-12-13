@@ -273,6 +273,7 @@ uint8_t integer_sub_cycle(Integer *result, uint64_t value, uint8_t borrow, size_
 	result->values[index] -= borrow;
 
 	uint8_t next_borrow = 0;
+	//if 'overflow' occurred, then indicate that a borrow happened
 	if (result->values[index] > orig_value)
 	{
 		next_borrow = 1;
@@ -280,6 +281,7 @@ uint8_t integer_sub_cycle(Integer *result, uint64_t value, uint8_t borrow, size_
 
 	orig_value = result->values[index];
 	result->values[index] -= value;
+	//do the same if 'overflow' occurred in this second case
 	if (result->values[index] > orig_value)
 	{
 		next_borrow++;
@@ -290,6 +292,7 @@ uint8_t integer_sub_cycle(Integer *result, uint64_t value, uint8_t borrow, size_
 
 void integer_propagate_final_borrow(Integer *result, uint8_t borrow, size_t borrow_index)
 {
+	//while each array index keeps continuing to need to borrow, keep propagating it out
 	while (borrow > 0)
 	{
 		result->values[borrow_index] -= borrow;
@@ -297,6 +300,7 @@ void integer_propagate_final_borrow(Integer *result, uint8_t borrow, size_t borr
 		borrow_index++;
 	}
 
+	//after subtracting, set the value of a->assigned
 	integer_set_assigned(result);
 }
 
@@ -312,25 +316,27 @@ Integer integer_multiply_int(Integer *result, Integer *a, uint64_t b)
 		return *result;
 	}
 
+	//store all of the intermediate multiplications in an array
 	Integer *intermediates = malloc(a->assigned * sizeof *intermediates);
 	size_t i;
-	//linear operation
 	for (i = 0; i < a->assigned; i++)
 	{
 		integer_initialize(intermediates + i);
-		
+	
+		//use a nonstandard 128 bit type to prevent overflow, and then immediately hand that result
+		//to an Integer	
 		__uint128_t result128 = (__uint128_t) a->values[i] * b;	
 		uint64_t upper64 = result128 >> BITS_IN_VALUE;
 		if (upper64 > 0)
 		{
-			integer_resize_if_necessary(intermediates + i, i + 1);
+			integer_resize_if_necessary(intermediates + i, i + 2);
 			intermediates[i].values[i] = result128;
 			intermediates[i].values[i + 1] = upper64;
 			intermediates[i].assigned = i + 2;
 		}
 		else
 		{
-			integer_resize_if_necessary(intermediates + i, i);
+			integer_resize_if_necessary(intermediates + i, i + 1);
 			intermediates[i].values[i] = result128;
 			intermediates[i].assigned = i + 1;
 		}
@@ -438,6 +444,9 @@ Integer integer_multiply_integer(Integer *result, Integer *a, Integer *b)
 
 Integer karatsuba(Integer *result, Integer *a, Integer *b)
 {
+	//assume that a and b are relatively close in size and that resizing one will not be important,
+	//so just make sure that both have the same number of array elements before starting to prevent
+	//accessing invalid locations
 	if (a->array_size > b->array_size)
 	{
 		integer_resize_if_necessary(b, a->array_size);
@@ -446,6 +455,7 @@ Integer karatsuba(Integer *result, Integer *a, Integer *b)
 	{
 		integer_resize_if_necessary(a, b->array_size);
 	}
+	//hand off to a worker function to prevent the overhead of returning Integers
 	karatsuba_worker(result, a, b);
 	return *result;
 }
@@ -467,6 +477,7 @@ void karatsuba_worker(Integer *result, Integer *a, Integer *b)
 
 	size_t m = (a_mag > b_mag ? a_mag : b_mag) / 2;
 
+	//split a and b into Integers low and high of m elements each
 	Integer low1, high1;
 	karatsuba_init_low_high(a, &low1, &high1, m);
 	Integer low2, high2;
@@ -540,6 +551,7 @@ Integer integer_power_int(Integer *result, Integer *base, uint64_t power)
 	integer_initialize(&r);
 	integer_assign_from_int(&r, 1);
 
+	//naively multiply the base by itself power times
 	size_t i;
 	for (i = 1; i <= power; i++)
 	{
@@ -553,6 +565,7 @@ Integer integer_power_int(Integer *result, Integer *base, uint64_t power)
 
 Integer power_by_squaring(Integer *result, Integer *base, uint64_t power)
 {
+	//hand off to a helper worker function to avoid unnecessary overhead of returning Integers
 	power_worker(result, base, power);
 	return *result;
 }
@@ -596,6 +609,10 @@ uint8_t integer_resize_if_necessary(Integer *a, size_t needed_size)
 		{
 			a->array_size *= 2;
 		} while ((a->array_size < needed_size) && (a->array_size > orig_size));
+		
+		//not the desired array_size for a is > max of a size_t, so can't realloc. (Though because
+		//it's doing the factor of two thing, it could try to change to increasing by a factor of
+		//1.5 or one element, etc., but for now, just indicate failure.)
 		if (a->array_size <= orig_size)
 		{
 			a->array_size = orig_size;
@@ -620,6 +637,8 @@ uint8_t integer_resize_if_necessary(Integer *a, size_t needed_size)
 
 void integer_set_assigned(Integer *a)
 {
+	//start at index array_size - 1 and while the values are zero and the end of the array hasn't
+	//been reached (indicated by i wrapping around to 0xffffffffffffffff), then decrement i
 	size_t i = a->array_size - 1;
 	while (i != INTEGER_MAX_WORD_VALUE && a->values[i] == 0)
 	{
