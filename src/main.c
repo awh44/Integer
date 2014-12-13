@@ -1,7 +1,9 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-
+#include <time.h>
+//
 #include "Integer.h"
 
 const uint64_t MAX_INTEGER_VAL = 0xffffffffffffffff;
@@ -18,6 +20,7 @@ void print_status(char *var, Integer *a)
 
 int main()
 {
+	srand(time(NULL));
 	Integer a, b, twoTo64;
 	integer_initialize(&a);
 	integer_initialize(&b);
@@ -144,6 +147,9 @@ int main()
 	print_status("b", &b);
 	printf("Doing a = b^10 = (2^96)^10:\n");
 	power_by_squaring(&a, &b, 10);	
+	print_status("a", &a);
+
+	integer_random(&a, 25);
 	print_status("a", &a);
 
 	integer_uninitialize(&a);

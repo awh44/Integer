@@ -114,8 +114,16 @@ void karatsuba_init_low_high(Integer *i, Integer *low, Integer *high, size_t m);
 	@param power the power to which the base is to be raised
 */
 void power_worker(Integer *result, Integer *base, uint64_t power);
-//-----------------------------------POWERING HELPER FUNCTIONS------------------------------------//
+//------------------------------------------------------------------------------------------------//
 
+//------------------------------------RANDOM HELPER FUNCTIONS-------------------------------------//
+/*
+	computes a random value between 0 and 2^64 to be used as one of the values in the value array of
+	the random Integer being generated
+	@return a random uint64_t integer in the range [0, 2^64)
+*/
+uint64_t integer_random_value(); 
+//------------------------------------------------------------------------------------------------//
 
 uint8_t integer_initialize(Integer *a)
 {
@@ -137,8 +145,11 @@ void integer_uninitialize(Integer *a)
 Integer integer_assign_from_int(Integer *dest, uint64_t source)
 {
 	memset(dest->values, 0, dest->array_size * sizeof *dest->values);
-	dest->values[0] = source;
-	dest->assigned = 1;
+	if (source != 0)
+	{	
+		dest->values[0] = source;
+		dest->assigned = 1;
+	}
 	return *dest;
 }
 
@@ -398,7 +409,9 @@ Integer integer_multiply_integer(Integer *result, Integer *a, Integer *b)
 		for (; j <= stop; j++)
 		{
 			size_t k = i - j;
+			//if k is greater than the number of meaningful values in b, then just multiply by 0;
 			uint64_t b_val = k >= b->assigned ? 0 : b->values[k];
+			//temporarily store the result in a nonstandard 128 bit type to avoid overflow
 			__uint128_t result128 = (__uint128_t) a->values[j] * b_val;
 			uint64_t upper64 = result128 >> BITS_IN_VALUE;
 			resultInteger.values[1] = upper64;
@@ -598,6 +611,38 @@ void power_worker(Integer *result, Integer *base, uint64_t power)
 char *integer_to_string(Integer *a)
 {
 	return NULL;
+}
+
+void integer_random(Integer *random, size_t length)
+{
+	integer_resize_if_necessary(random, length);
+	integer_assign_from_int(random, 0); 
+	size_t i;
+	for (i = 0; i < length; i++)
+	{
+		random->values[i] = integer_random_value();
+	}
+
+	while (random->values[i - 1] == 0)
+	{
+		random->values[i] = integer_random_value();
+	}
+}
+
+//almost uniformly distributed..I had a guy at an interview this week convince me that this was
+//uniformly distributed for a three bits, so I'm assuming it'll work for BITS_IN_VALUE bits as well.
+//In turn, integer_random sort of acts like this in aggregate - it sets each "bit" (each value in
+//the array) to be some possible value less than the max there. So, hopefully this is at least
+//somewhat uniform, assuming the uniformity of rand() itself.
+uint64_t integer_random_value()
+{
+	uint64_t value = 0;
+	size_t i;
+	for (i = 0; i < BITS_IN_VALUE; i++)
+	{
+		value |= rand() % 2 << i;
+	}
+	return value;
 }
 
 uint8_t integer_resize_if_necessary(Integer *a, size_t needed_size)
