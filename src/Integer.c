@@ -150,6 +150,10 @@ Integer integer_assign_from_int(Integer *dest, uint64_t source)
 		dest->values[0] = source;
 		dest->assigned = 1;
 	}
+	else
+	{
+		dest->assigned = 0;
+	}
 	return *dest;
 }
 
