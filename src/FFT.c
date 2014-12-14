@@ -125,7 +125,7 @@ Complex *inverse_FFT(int n, Complex *x)
 
 void print_complex_number(Complex x)
 {
-	printf("%Lf + %Lfi\n", x.real, x.imag);
+	printf("%.20Lf + %.20Lfi\n", x.real, x.imag);
 }
 
 void print_complex_numbers(int n, Complex *x)
@@ -137,12 +137,12 @@ void print_complex_numbers(int n, Complex *x)
 	}
 }
 
-int8_t get_bit_i(int32_t a, int bit)
+int8_t get_bit_i(uint32_t a, int bit)
 {
 	return (a >> bit) & 1;
 }
 
-int64_t multiply(int32_t a, int32_t b)
+int64_t multiply(uint32_t a, uint32_t b)
 {
 	Complex *a_bits = calloc(32, sizeof *a_bits);
 	Complex *b_bits = calloc(32, sizeof *b_bits);
@@ -164,11 +164,23 @@ int64_t multiply(int32_t a, int32_t b)
 	}
 
 	Complex *result_fft = inverse_FFT(32, mult_results);
+	print_complex_numbers(32, result_fft);
 
-	int64_t result = 0;
-	for (i = 0; i < 32; i++)
-	{
-		result |= ((int64_t) result_fft[i].real) << i; 
+	uint64_t result = 0,
+			 and_val = 1;
+	i = 0;
+	while (i < 32)//and_val != 0)
+	{/*
+		if (result_fft[i].real >= 1.0L)
+		{
+			printf("%d: or'ing. result_fft[i].real = %Lf\n", i, result_fft[i].real);
+			result |= and_val;
+		}
+		*/
+		//and_val <<= 1;
+		//printf("i = %d: %lu\n", i, (uint64_t) result_fft[i].real);
+		result |= ((uint64_t) (result_fft[i].real + 0.5)) << i;
+		i++;
 	}
 
 	free(a_bits);
@@ -181,6 +193,7 @@ int64_t multiply(int32_t a, int32_t b)
 
 int main(int argc, char *argv[])
 {
+
 	if (argc < 3)
 	{
 		printf("Please enter two numbers to multiply.\n");
@@ -190,8 +203,8 @@ int main(int argc, char *argv[])
 	int64_t value = multiply(atoi(argv[1]), atoi(argv[2]));
 	printf("%ld\n", value);
 
+	return 0;
 
-/*
 	if (argc < 2)
 	{
 		printf("Please enter at least one number of which to compute the FFT.\n");
@@ -217,6 +230,6 @@ int main(int argc, char *argv[])
 
 	free(resultFFT);
 	free(resultInverseFFT);
-*/
+
 	return 0;
 }
