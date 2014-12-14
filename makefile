@@ -1,28 +1,35 @@
 PAGER=less
 CC=gcc
 
-.PHONY: view-results FFT clean debug memcheck
+.PHONY: view-results FFT clean debug memcheck timing
 
-view-results: results.test
-	@$(PAGER) results.test
+view-results: results/results.test
+	@$(PAGER) results/results.test
 
-results.test: main.out
-	@./main.out > results.test
+results/results.test: build/main.out
+	@build/main.out > results/results.test
 
-main.out: main.c Integer.c Integer.h
-	$(CC) -g -omain.out main.c Integer.c
+build/main.out: src/main.c src/Integer.c src/Integer.h
+	$(CC) -g -obuild/main.out src/main.c src/Integer.c
 
-debug: main.out
-	@gdb ./main.out
+debug: build/main.out
+	@gdb build/main.out
 
-memcheck: main.out
-	@valgrind ./main.out
+memcheck: build/main.out
+	@valgrind build/main.out
 
-FFT: FFT.out
-	@./FFT.out $(FIRST) $(SECOND)
 
-FFT.out: FFT.c
-	@gcc -oFFT.out FFT.c -lm
+timing: build/timing.out
+	@build/timing.out $(ARG)
+
+build/timing.out: src/timing.c src/Integer.c src/Integer.h
+	@$(CC) -obuild/timing.out src/timing.c src/Integer.c -lgmp
+
+FFT: build/FFT.out
+	@build/FFT.out $(FIRST) $(SECOND)
+
+build/FFT.out: src/FFT.c
+	@gcc -obuild/FFT.out src/FFT.c -lm
 
 clean:
-	@rm -r *.out
+	@-rm -rf build/*
